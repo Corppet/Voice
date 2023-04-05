@@ -14,6 +14,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float footstepSpeed = .5f;
     private float footstepTime;
 
+    [Space(5)]
+
     [Header("Gun Settings")]
     [Range(0, 100)]
     public int maxAmmo = 2;
@@ -21,13 +23,37 @@ public class PlayerController : MonoBehaviour
     public float fireRate = 0.5f;
     [SerializeField] private AudioSource gunAudio;
     [SerializeField] private AudioClip[] gunShotClips;
+    [SerializeField] private AudioClip[] gunShotEmpty;
     [SerializeField] private ParticleSystem gunParticles;
-    private int ammo;
+    private int _ammo;
+    private int ammo
+    {
+        get { return _ammo; }
+
+        set
+        {
+            for (int i = 0; i < bulletIcons.Length; i++)
+            {
+                if (i < value)
+                {
+                    bulletIcons[i].SetActive(true);
+                }
+                else
+                {
+                    bulletIcons[i].SetActive(false);
+                }
+            }
+            _ammo = value;
+        }
+    }
     private float gunCD;
 
+    [Space(10)]
+
+    [Header("Other References")]
     [SerializeField] new private Camera camera;
     [SerializeField] private LayerMask enemyMask;
-
+    [SerializeField] private GameObject[] bulletIcons;
 
     private CharacterController controller;
 
@@ -53,13 +79,17 @@ public class PlayerController : MonoBehaviour
         LookControls();
         MoveControls();
 
-        if (Input.GetMouseButton(0))
+        if (Input.GetMouseButtonDown(0))
         {
             if (gunCD <= 0f && ammo > 0)
             {
                 FireGun();
                 gunCD = fireRate;
                 ammo--;
+            }
+            else if (ammo <= 0)
+            {
+                gunAudio.PlayOneShot(gunShotEmpty[Random.Range(0, gunShotEmpty.Length)], gunAudio.volume);
             }
         }
 
@@ -72,9 +102,9 @@ public class PlayerController : MonoBehaviour
     private void LookControls()
     {
         float mouseX = Input.GetAxis("Mouse X");
-        float mouseY = Input.GetAxis("Mouse Y");
+        //float mouseY = Input.GetAxis("Mouse Y");
         transform.Rotate(Vector3.up, mouseX);
-        camera.transform.Rotate(Vector3.right, -mouseY);
+        //camera.transform.Rotate(Vector3.right, -mouseY);
     }
 
     private void MoveControls()
@@ -106,12 +136,10 @@ public class PlayerController : MonoBehaviour
     {
         Transform cam = camera.transform;
 
-        Debug.Log("Firing Gun");
         if (Physics.Raycast(cam.position, cam.forward, out RaycastHit hit, 50f, enemyMask))
         {
             GameManager.Instance.OnEnemyHit.Invoke();
-            ammo = maxAmmo;
-            Debug.Log("Enemy Hit");
+            ammo = maxAmmo + 1;
             Debug.DrawRay(cam.position, hit.distance * cam.forward, Color.yellow, 2f);
         }
         else
